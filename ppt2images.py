@@ -1,10 +1,9 @@
-#源码来自于公众号：谭某人
-
 import win32com
 import win32com.client
 import sys
 import os
-
+import glob
+import shutil
 from PIL import Image
 
 #获取当前目录
@@ -36,11 +35,21 @@ def ppt2png(pptFileName):
 def pngMontage(dirName):
 
     #打开目录下所有的png图片
-    imageList = [Image.open(png_root+dirName+'\\'+img) for img in os.listdir(png_root+dirName) if img.endswith('.JPG')]
+    imageList = []
+    file_list = os.listdir(png_root+dirName)
+
+    sorted_file_list = sorted(file_list, key=lambda x: os.path.getctime(os.path.join(png_root+dirName, x)))
+
+    final_file = sorted_file_list
+    imageList = final_file
+    #获取每张图的宽高
+    for file in final_file:
+         print(file)
+    imageList = [Image.open(png_root+dirName+'\\'+img) for img in final_file  if img.endswith('.JPG')]
     #获取每张图的宽高
     width,height = imageList[0].size
     #新建空白图片并设置图片的宽高,其中高度为所有图片高的总和
-    longImage = Image.new(imageList[0].mode,(width*3,int((len(imageList)*height)/3)))
+    longImage = Image.new(imageList[0].mode,(width*3,int((len(imageList)*height+height*6)/3)))
     begin_x = 0
     begin_y = height*2
     for index,image in enumerate(imageList):
@@ -54,11 +63,15 @@ def pngMontage(dirName):
              if begin_x % (width*3) == 0:
                         begin_x = 0
                         begin_y += height
-    longImage.save(dirName+'long.png')
+    isExist = os.path.exists(ppt_root+'/预览图')#创建预览图目录
+    if not isExist :
+        os.mkdir(ppt_root+'/预览图')
+    longImage.save(ppt_root+'/预览图'+'/'+dirName+'jpg')#保存生成的图片
 
 
 
 #批量打开当前目录下所有的ppt文件
-for ppt in (pptFiles for pptFiles in os.listdir(ppt_root) if pptFiles.endswith('.pptx') or pptFiles.endswith('.ppt')):
+for ppt in (pptFiles for pptFiles in sorted(os.listdir(ppt_root)) if pptFiles.endswith('.pptx') or pptFiles.endswith('.ppt')):
     ppt2png(ppt) #ppt导出图片
     pngMontage(ppt[0:-4]) #所有图片拼接成长图
+    shutil.rmtree(png_root+ppt[0:-4])#删除当前生成图片的目录
